@@ -1,0 +1,12 @@
+=================================
+ Chatter Terminal Twitter Client
+=================================
+
+Chatter Terminal is a Twitter client for nerdy nerds who want to see their
+friends' timelines from the command line.
+
+Chatter Terminal is a command line (console) program that lets you see your
+friends' tweets and update your own twitter statuses. It is written in PHP and
+uses the Twitter API with cURL
+
+See http://www.quantalideas.com/code/chatter/ for more details.
