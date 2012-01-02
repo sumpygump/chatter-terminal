@@ -316,7 +316,13 @@ class Qi_Console_Terminal
         if (null === $size) {
             $size = $this->_columns;
         }
-        $len = strlen($text)+4;
+        $len = strlen($text) + 4;
+
+        // Setup a string to switch to original pair,
+        // add a newline character and then switch back to the desired colors
+        $start   = $this->do_setaf($fg) . $this->do_setab($bg);
+        $end     = $this->do_op() . "\n";
+        $newline = $end . $start;
 
         if ($len > $size || strpos($text, "\n") !== false) {
             $len   = $size;
@@ -326,21 +332,21 @@ class Qi_Console_Terminal
             foreach ($lines as $line) {
                 $line = "  " . trim($line);
 
-                $text .= str_pad($line, $size, ' ') . "\n";
+                $text .= str_pad($line, $size, ' ') . $newline;
             }
         } else {
-            $text = "  " . $text . "  \n";
+            $text = "  " . $text . "  " . $newline;
         }
 
         $padding = str_repeat(' ', $len);
-        $out     = $padding . "\n" . $text . $padding;
 
-        $this->set_fgcolor($fg);
-        $this->set_bgcolor($bg);
+        $out = $start
+            . $padding . $newline
+            . $text
+            . $padding
+            . $end;
 
         print $out;
-        $this->op();
-        print "\n";
 
         return $this;
     }
@@ -483,7 +489,10 @@ class Qi_Console_Terminal
         }
 
         $args = array_merge(array($cap_name), $args);
-        $out  = call_user_func_array(array($this->_terminfo, 'doCapability'), $args);
+        $out  = call_user_func_array(
+            array($this->_terminfo, 'doCapability'), $args
+        );
+
         if ($this->_isatty) {
             return $out;
         } else {

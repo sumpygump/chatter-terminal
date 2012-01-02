@@ -278,7 +278,6 @@ class Qi_Console_Terminfo
                 "Too few params for call to '$cap_name'. "
                 . "Received $parm_count, expecting $req_parm_count.\n"
             );
-            exit(2);
         }
 
         $parms = func_get_args();
@@ -294,6 +293,7 @@ class Qi_Console_Terminfo
      * Count how many parms are needed for this capability
      * 
      * This was ported from tput c library
+     * see _nc_tparm_analyze() in ncurses/tinfo/lib_tparm.c
      * 
      * @param mixed $cap_string Capability string
      * @return int
@@ -301,7 +301,6 @@ class Qi_Console_Terminfo
     private function _getRequiredParmCount($cap_string)
     {
         $popcount = 0; // highest param number
-        $arg_need = 0; // number of args needed
         $str_len  = strlen($cap_string);
 
         for ($cp = 0; $cp < $str_len; $cp++) {
@@ -317,34 +316,20 @@ class Qi_Console_Terminfo
                     break;
                 case 'p':
                     $cp++;
-                    if (is_numeric($cap_string[$cp])
-                        && $popcount < $cap_string[$cp]
+                    $i = $cap_string[$cp];
+                    if (is_numeric($i)
+                        && $popcount < $i
                     ) {
-                        $popcount = $cap_string[$cp];
+                        $popcount = $i;
                     }
-                    break;
-                case 'd':
-                case 's':
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                case '.':
-                case '+':
-                    $arg_need++;
                     break;
                 default:
                     break;
                 }
             }
         }
-        return max($arg_need, $popcount);
+
+        return $popcount;
     }
 
     /**
