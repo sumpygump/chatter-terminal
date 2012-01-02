@@ -244,6 +244,7 @@ class Qi_Console_Terminal
             // TODO: if windows, use the command 'mode' to get the columns
             $this->_columns = 80;
         }
+
         return $this->_columns;
     }
 

@@ -88,7 +88,7 @@ class Qi_Console_TermLetters
             $this->_terminal = new Qi_Console_Terminal();
         }
 
-        $this->_width = $this->_terminal->get_columns();
+        $this->_width = $this->_terminal->get_columns($this->_terminal->isatty());
 
         if (isset($options['width'])) {
             $this->_width = $options['width'];
