@@ -42,7 +42,7 @@ class Qi_Console_Terminal
 
     /**
      * Whether terminal is cygwin
-     * 
+     *
      * @var bool
      */
     protected $_isCygwin = false;
@@ -120,9 +120,9 @@ class Qi_Console_Terminal
     /**
      * Set Is a tty manually
      *
-     * If no parameters used it will default back to the original state based 
+     * If no parameters used it will default back to the original state based
      * on the default detection routine
-     * 
+     *
      * @param bool $val Value to set isatty
      * @return void
      */
@@ -311,7 +311,7 @@ class Qi_Console_Terminal
      * @param mixed $size The width of the text box
      * @return object Terminal self (to allow for chaining)
      */
-    public function pretty_message($text, $fg=7, $bg=4, $size=null)
+    public function pretty_message($text, $fg=7, $bg=4, $size=null, $verticalPadding = true)
     {
         if (null === $size) {
             $size = $this->_columns;
@@ -338,7 +338,13 @@ class Qi_Console_Terminal
             $text = "  " . $text . "  " . $newline;
         }
 
-        $padding = str_repeat(' ', $len);
+        if ($verticalPadding) {
+            $padding = str_repeat(' ', $len);
+        } else {
+            $padding = '';
+            $end = trim($end);
+            $newline = $end . $start;
+        }
 
         $out = $start
             . $padding . $newline
@@ -529,7 +535,7 @@ class Qi_Console_Terminal
 
     /**
      * Whether terminal is cygwin
-     * 
+     *
      * @return void
      */
     public function isCygwin()
@@ -539,7 +545,7 @@ class Qi_Console_Terminal
 
     /**
      * Dump capabilities array
-     * 
+     *
      * @return void
      */
     public function dump_caps()
