@@ -31,7 +31,7 @@ class TwitterOAuth {
   public $decode_json = TRUE;
   /* Contains the last HTTP headers returned. */
   public $http_info;
-  /* Set the useragnet. */
+  /* Set the useragent. */
   public $useragent = 'TwitterOAuth v0.2.0-beta2';
   /* Immediately retry the API call if the response was not successful. */
   //public $retry = TRUE;
@@ -43,8 +43,8 @@ class TwitterOAuth {
    * Set API URLS
    */
   function accessTokenURL()  { return 'https://api.twitter.com/oauth/access_token'; }
-  function authenticateURL() { return 'https://twitter.com/oauth/authenticate'; }
-  function authorizeURL()    { return 'https://twitter.com/oauth/authorize'; }
+  function authenticateURL() { return 'https://api.twitter.com/oauth/authenticate'; }
+  function authorizeURL()    { return 'https://api.twitter.com/oauth/authorize'; }
   function requestTokenURL() { return 'https://api.twitter.com/oauth/request_token'; }
 
   /**
