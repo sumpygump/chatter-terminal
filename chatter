@@ -1222,6 +1222,7 @@ class Chatter
 
         if ($this->_args->espeak == true) {
             $body = self::_replaceEmoticons($body);
+            $body = self::_replaceShortenedUrls($body);
             $cmd = 'espeak --punct=\'!/()\' "Tweet from ' . $summary . ': ' . self::_escapeArg($body, "\"", false) . '"';
 
             // Redirect errors to not display
@@ -1263,6 +1264,21 @@ class Chatter
         $text = str_replace(':)', ', smiley face,', $text);
         $text = str_replace(':(', ', frowney face,', $text);
         $text = str_replace(':D', ', happy face,', $text);
+
+        return $text;
+    }
+
+    /**
+     * Replace URL references (t.co) with words
+     *
+     * When espeak reads the URLs verbatim, it's annoying
+     *
+     * @param string $text Text input containing href
+     * @return string
+     */
+    protected static function _replaceShortenedUrls($text)
+    {
+        $text = preg_replace('#http://t.co/([A-Za-z0-9]+)#', ',Hyperlink to T dot co', $text);
 
         return $text;
     }
