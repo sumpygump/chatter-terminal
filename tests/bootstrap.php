@@ -7,6 +7,8 @@
 
 require_once 'BaseTestCase.php';
 
+date_default_timezone_set('America/Chicago');
+
 $root = realpath(dirname(dirname(__FILE__)));
 
 // Include path

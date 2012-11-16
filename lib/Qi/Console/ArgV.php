@@ -205,7 +205,7 @@ class Qi_Console_ArgV
                         if ($shuntVal != '') {
                             $nextVal = $shuntVal;
                         } else {
-                            throw new Exception(
+                            throw new Qi_Console_ArgVException(
                                 "Missing required parameter for arg $option"
                             );
                         }
@@ -233,7 +233,7 @@ class Qi_Console_ArgV
                                 $this->_setSingleOption($option, $nextVal);
                                 break;
                             }
-                            throw new Exception(
+                            throw new Qi_Console_ArgVException(
                                 "Missing required parameter for arg $option"
                             );
                         }
@@ -541,4 +541,18 @@ class Qi_Console_ArgV
         );
         return $args;
     }
+}
+
+/**
+ * Qi_Console_ArgVException
+ *
+ * @uses Exception
+ * @package Qi
+ * @subpackage Console
+ * @author Jansen Price <jansen.price@gmail.com>
+ * @license http://www.opensource.org/licenses/mit-license.php MIT
+ * @version 1.3.4
+ */
+class Qi_Console_ArgVException extends Exception
+{
 }

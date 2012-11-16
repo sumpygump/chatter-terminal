@@ -18,21 +18,72 @@
  */
 class Qi_Console_Terminfo
 {
-    /**#@+
+    /**
      * Private vars
      *
      * @var mixed
      */
     private $_term;
+
+    /**
+     * Terminfo path
+     *
+     * This is the path where the terminfo files are located
+     *
+     * @var string
+     */
     private $_terminfo_path = '/lib/terminfo';
+
+    /**
+     * Terminfo filename
+     *
+     * @var string
+     */
     private $_terminfo_filename;
+
+    /**
+     * Terminfo data
+     *
+     * @var array
+     */
     private $_terminfo_data;
+
+    /**
+     * Terminfo binary data
+     *
+     * @var mixed
+     */
     private $_terminfo_bindata;
+
+    /**
+     * Capabilities
+     *
+     * An array of capabilities index by cap name
+     *
+     * @var array
+     */
     private $_capabilities = array();
-    private $_names        = array();
-    private $_cache        = array();
-    private $_isCygwin     = false;
-    /**#@-*/
+
+    /**
+     * Names
+     *
+     * @var array
+     */
+    private $_names = array();
+
+    /**
+     * Cache of terminfo capabilities
+     *
+     * @var array
+     */
+    private $_cache = array();
+
+    /**
+     * Whether this terminal is a cygwin terminal
+     *
+     * @var bool
+     */
+    private $_isCygwin = false;
 
     /**#@+
      * Capability type constants
@@ -47,7 +98,7 @@ class Qi_Console_Terminfo
     /**#@-*/
 
     /**
-     * Capability types 
+     * Capability types
      *
      * @var array
      */
@@ -57,12 +108,20 @@ class Qi_Console_Terminfo
     );
 
     /**
+     * Override terminal to force tty
+     *
+     * @var mixed
+     */
+    protected $_overrideTerminal = null;
+
+    /**
      * __construct
      *
      * @param bool $force_bin Whether to get terminfo data from binary in $TERM
+     * @param string $overrideTerminal Force to use a certain terminal by name
      * @return void
      */
-    public function __construct($force_bin = false)
+    public function __construct($force_bin = false, $overrideTerminal = null)
     {
         if (PHP_SAPI != 'cli') {
             throw new Exception(
@@ -74,6 +133,10 @@ class Qi_Console_Terminfo
             && strpos($_SERVER['TERM'], 'cygwin') !== false
         ) {
             $this->_isCygwin = true;
+        }
+
+        if ($overrideTerminal != null) {
+            $this->_overrideTerminal = $overrideTerminal;
         }
 
         if (!$force_bin) {
@@ -104,7 +167,13 @@ class Qi_Console_Terminfo
             return null;
         }
 
-        exec('infocmp', $output, $return);
+        $cmd = 'infocmp';
+
+        if ($this->_overrideTerminal) {
+            $cmd .= ' ' . $this->_overrideTerminal;
+        }
+
+        exec($cmd, $output, $return);
         if (!$return) {
             $this->_terminfo_data = $output;
         }
@@ -121,23 +190,23 @@ class Qi_Console_Terminfo
      */
     public function getCapability($cap_name, $verbose=false)
     {
-        if (isset($this->_capabilities[$cap_name])) {
-            if ($verbose) {
-                return $cap_name . " : ("
-                    . self::$cap_defs[$cap_name]['variable_name'] . ") "
-                    . self::$cap_defs[$cap_name]['description'] . " = '"
-                    . $this->_capabilities[$cap_name] . "'";
-            } else {
-                return $this->_capabilities[$cap_name];
-            }
-        } else {
+        if (!isset($this->_capabilities[$cap_name])) {
             return false;
         }
+
+        if ($verbose) {
+            return $cap_name . " : ("
+                . self::$cap_defs[$cap_name]['variable_name'] . ") "
+                . self::$cap_defs[$cap_name]['description'] . " = '"
+                . $this->_capabilities[$cap_name] . "'";
+        }
+
+        return $this->_capabilities[$cap_name];
     }
 
     /**
      * Output the capability for a given cap name
-     * 
+     *
      * @param mixed $cap_name The name of the capability
      * @return string A description of the capability
      */
@@ -179,11 +248,18 @@ class Qi_Console_Terminfo
     public function dump()
     {
         $out = '';
-        foreach ($this->_capabilities as $cap_name=>$capability) {
+
+        foreach ($this->_capabilities as $cap_name => $capability) {
+            if (!array_key_exists($cap_name, self::$cap_defs)) {
+                // Ignore non-standard termcaps like meml or memu
+                continue;
+            }
+
             $out .= "[" . $cap_name . "] => "
                 . "(" . self::$cap_defs[$cap_name]['description'] . ") "
                 . " '" . $capability . "'\n";
         }
+
         echo $out;
     }
 
@@ -221,6 +297,7 @@ class Qi_Console_Terminfo
             $args = array_merge(array($method), $args);
             return call_user_func_array(array($this, 'doCapability'), $args);
         }
+
         return false;
     }
 
@@ -291,10 +368,10 @@ class Qi_Console_Terminfo
 
     /**
      * Count how many parms are needed for this capability
-     * 
+     *
      * This was ported from tput c library
      * see _nc_tparm_analyze() in ncurses/tinfo/lib_tparm.c
-     * 
+     *
      * @param mixed $cap_string Capability string
      * @return int
      */
@@ -338,7 +415,7 @@ class Qi_Console_Terminfo
      * This was ported from the tput c library
      * Note: The 0th parm is expected to be the cap_name,
      *  so p1 starts at $parm[1]
-     * 
+     *
      * @param mixed $cap_string The capability string
      * @param mixed $parms Params to pass to the capability
      * @return string
@@ -453,7 +530,7 @@ class Qi_Console_Terminfo
 
     /**
      * Parse the terminfo data to populate capabilities
-     * 
+     *
      * @return void
      */
     private function _parseTerminfoData()
@@ -527,7 +604,7 @@ class Qi_Console_Terminfo
 
     /**
      * Use the $TERM information to lookup and get the binary file terminfo data
-     * 
+     *
      * @return void
      */
     public function getTerminfoBinData()
@@ -542,18 +619,18 @@ class Qi_Console_Terminfo
 
         $this->_terminfo_filename = $this->getTerminfoFilename();
 
-        //echo $this->_terminfo_filename . "\n";
-
         if (file_exists($this->_terminfo_filename)) {
             $this->_terminfo_bindata = file_get_contents(
                 $this->_terminfo_filename
             );
         }
+
+        return $this->_terminfo_bindata;
     }
 
     /**
      * Get the filename with terminfo data
-     * 
+     *
      * @return string
      */
     public function getTerminfoFilename()
@@ -571,7 +648,7 @@ class Qi_Console_Terminfo
      * View hex chars of string
      *
      * Outputs a listing of hexidecimal values in 16 byte rows
-     * 
+     *
      * @param mixed $text Input text
      * @return string
      */

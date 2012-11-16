@@ -13,7 +13,7 @@
  * @package Qi
  * @author Jansen Price <jansen.price@gmail.com>
  * @license http://www.opensource.org/licenses/mit-license.php MIT
- * @version 1.1
+ * @version 1.2
  */
 class Qi_Datelib
 {

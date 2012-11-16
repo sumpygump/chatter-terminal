@@ -171,6 +171,10 @@ class Qi_Console_Terminal
      */
     public function locate($row, $column)
     {
+        if (!is_int($row) || !is_int($column)) {
+            return $this;
+        }
+
         $this->printterm($this->_terminfo->cup($row, $column));
         return $this;
     }
@@ -249,16 +253,6 @@ class Qi_Console_Terminal
     }
 
     /**
-     * Debugging method to dump the cache for examining
-     *
-     * @return void
-     */
-    public function dump_cache()
-    {
-        $this->_terminfo->dump_cache();
-    }
-
-    /**
      * Attempt to get the number of rows of the current terminal
      *
      * @param mixed $force Whether to force getting value from terminal
@@ -309,9 +303,11 @@ class Qi_Console_Terminal
      * @param int $fg Foreground color
      * @param int $bg Background color
      * @param mixed $size The width of the text box
+     * @param bool $verticalPadding Include vertical padding
      * @return object Terminal self (to allow for chaining)
      */
-    public function pretty_message($text, $fg=7, $bg=4, $size=null, $verticalPadding = true)
+    public function pretty_message($text, $fg=7, $bg=4, $size=null,
+        $verticalPadding = true)
     {
         if (null === $size) {
             $size = $this->_columns;
@@ -342,7 +338,7 @@ class Qi_Console_Terminal
             $padding = str_repeat(' ', $len);
         } else {
             $padding = '';
-            $end = trim($end);
+            $end     = trim($end);
             $newline = $end . $start;
         }
 
@@ -471,17 +467,6 @@ class Qi_Console_Terminal
     }
 
     /**
-     * Execute _terminfo->dump()
-     * Will ouput a listing of all the capabilities with their descriptions
-     *
-     * @return void
-     */
-    public function dump()
-    {
-        $this->_terminfo->dump();
-    }
-
-    /**
      * Just get the capability string parsed, instead of echoing it
      *
      * @param string $cap_name The capability name
@@ -491,7 +476,7 @@ class Qi_Console_Terminal
     public function do_capability($cap_name, $args = array())
     {
         if (!$this->_terminfo->hasCapability($cap_name)) {
-            Qi_Console_Std::err($cap_name . " not a cap");
+            trigger_error($cap_name . " not a cap");
         }
 
         $args = array_merge(array($cap_name), $args);
@@ -544,12 +529,23 @@ class Qi_Console_Terminal
     }
 
     /**
-     * Dump capabilities array
+     * Execute _terminfo->dump()
+     * Will ouput a listing of all the capabilities with their descriptions
      *
      * @return void
      */
-    public function dump_caps()
+    public function dump()
     {
         $this->_terminfo->dump();
+    }
+
+    /**
+     * Debugging method to dump the cache for examining
+     *
+     * @return void
+     */
+    public function dump_cache()
+    {
+        $this->_terminfo->dump_cache();
     }
 }
