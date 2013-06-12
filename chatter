@@ -656,9 +656,20 @@ class Chatter
      */
     public function showUserTimeline($user=null, $options=array())
     {
+        if ($this->_args->continuous) {
+            // If we're in continuous mode we should only show since the last 
+            // set of tweets
+            $lastid = $this->_getSavedTweetsLastId();
+            if ($lastid != false) {
+                $options['since_id'] = $lastid;
+            }
+        }
+
         $tweets = $this->_twitterApi->getUserTimeline($user, $options);
 
-        $this->saveTweets($tweets);
+        if (!empty($tweets)) {
+            $this->saveTweets($tweets);
+        }
 
         if (isset($tweets->error)) {
             $this->_halt("Error: " . $tweets->error);
@@ -1440,6 +1451,22 @@ class Chatter
                 $this->_configPath . 'lastid', (string) $last->id_str
             );
         }
+    }
+
+    protected function _getSavedTweetsLastId()
+    {
+        $tweets = $this->_savedTweets;
+
+        if (!is_array($tweets) || empty($tweets)) {
+            return false;
+        }
+
+        $last = end($tweets);
+        if ($last->id_str != '') {
+            return $last->id_str;
+        }
+
+        return false;
     }
 
     /**
