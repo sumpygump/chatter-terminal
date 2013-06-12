@@ -6,9 +6,9 @@
  */
 
 /**
- * @see PHPUnit/Framework.php
+ * @see PHPUnit/Framework/TestCase.php
  */
-require_once 'PHPUnit/Framework.php';
+require_once 'PHPUnit/Framework/TestCase.php';
 
 /**
  * Base Test Case

@@ -3,12 +3,14 @@
  * Term Letters class file
  *
  * @package Qi
+ * @subpackage Console
  */
 
 /**
  * TermLetters 
  * 
  * @package Qi
+ * @subpackage Console
  * @author Jansen Price <jansen.price@gmail.com>
  * @version $Id$
  */

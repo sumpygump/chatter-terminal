@@ -18,8 +18,9 @@ class ChatterTwitterApi
     /**#@+
      * @var string Twitter API Base url
      */
-    const TWITTER_API_URL        = 'https://api.twitter.com/1/';
+    const TWITTER_API_URL        = 'https://api.twitter.com/1.1/';
     const TWITTER_SEARCH_API_URL = 'http://search.twitter.com/';
+    const TWITTER_STREAM_API_URL = 'https://stream.twitter.com/1.1/';
     /**#@-*/
 
     /**
@@ -35,13 +36,20 @@ class ChatterTwitterApi
     protected $_connection = null;
 
     /**
+     * Whether to log API requests (for debugging)
+     *
+     * @var bool
+     */
+    protected $_logApiRequests = false;
+
+    /**
      * Constructor
      *
      * @param object $connection TwitterOAuth connection object
      * @param string $configPath Chatter config path
      * @return void
      */
-    public function __construct($connection, $configPath='')
+    public function __construct($connection, $configPath = '', $options = array())
     {
         $this->_connection = $connection;
 
@@ -53,6 +61,10 @@ class ChatterTwitterApi
             }
         } else {
             $this->_configPath = $configPath;
+        }
+
+        if (isset($options['log'])) {
+            $this->_logApiRequests = $options['log'];
         }
     }
 
@@ -66,7 +78,7 @@ class ChatterTwitterApi
     public function getTimeline($type, $options = array())
     {
         switch ($type) {
-        case 'public':
+        case 'user':
             break;
         case 'home':
         default:
@@ -103,17 +115,6 @@ class ChatterTwitterApi
     }
 
     /**
-     * Get public timeline
-     *
-     * @param array $options Additional options
-     * @return array
-     */
-    public function getPublicTimeline($options = array())
-    {
-        return $this->getTimeline('public', $options);
-    }
-
-    /**
      * Get a user's timeline
      *
      * @param mixed $user The user id or screen name
@@ -122,18 +123,25 @@ class ChatterTwitterApi
      */
     public function getUserTimeline($user=null, $options=array())
     {
-        if ($user != null) {
-            $url = self::TWITTER_API_URL . 'statuses/user_timeline/'
-                . $user . '.json';
-        } else {
-            $url = self::TWITTER_API_URL . 'statuses/user_timeline.json';
-        }
+        $userOptions = array(
+            'screen_name' => $user,
+        );
 
-        $tweets = $this->getHttp($url, true, $options);
-        if (is_array($tweets)) {
-            $tweets = array_reverse($tweets);
-        }
+        $options = array_merge($options, $userOptions);
 
+        return $this->getTimeline('user', $options);
+    }
+
+    /**
+     * Get samples from public timeline
+     *
+     * @return void
+     */
+    public function getSampleStatuses()
+    {
+        $url = self::TWITTER_STREAM_API_URL . 'statuses/sample.json';
+
+        $tweets = $this->getHttp($url, true);
         return $tweets;
     }
 
@@ -145,14 +153,53 @@ class ChatterTwitterApi
      */
     public function getShowUser($user = null)
     {
-        if ($user != null) {
-            $url = self::TWITTER_API_URL . 'users/show.json'
-                . '?screen_name=' . urlencode($user);
-        } else {
-            $url = self::TWITTER_API_URL . 'users/show.json';
+        $url = self::TWITTER_API_URL . 'users/show.json';
+
+        $options = array(
+            'screen_name' => $user,
+        );
+
+        $data = $this->getHttp($url, true, $options);
+        return $data;
+    }
+
+    /**
+     * Get a list of friend ids for a given user
+     *
+     * @param string $screen_name Twitter screen name
+     * @return array
+     */
+    public function getFriendIds($screen_name = null)
+    {
+        $url = self::TWITTER_API_URL . 'friends/ids.json';
+
+        $options = array(
+            'screen_name' => $screen_name,
+        );
+
+        $data = $this->getHttp($url, true, $options);
+        return $data->ids;
+    }
+
+    /**
+     * Lookup users
+     *
+     * @param string|array $user_id User id or array of user ids
+     * @return output
+     */
+    public function lookupUsers($user_id)
+    {
+        if (!is_array($user_id)) {
+            $user_id = array($user_id);
         }
 
-        $data = $this->getHttp($url);
+        $url = self::TWITTER_API_URL . 'users/lookup.json';
+
+        $options = array(
+            'user_id' => implode(',', $user_id),
+        );
+
+        $data = $this->getHttp($url, true, $options);
         return $data;
     }
 
@@ -194,16 +241,17 @@ class ChatterTwitterApi
      * @param array $options Additional options
      * @return array Array of search results
      */
-    public function searchTweets($search_term='', $options=array())
+    public function searchTweets($search_term = '', $options = array())
     {
         $url = self::TWITTER_SEARCH_API_URL . 'search.json';
 
         $options['q'] = urlencode($search_term);
 
+        $tweets  = array();
+
         $search = $this->getHttp($url, false, $options);
         if (count($search->results)) {
             $results = array_reverse($search->results);
-            $tweets  = array();
             foreach ($results as $result) {
                 $result->user = new StdClass();
 
@@ -264,6 +312,8 @@ class ChatterTwitterApi
     public function getHttp($url, $auth = true, $params = array(),
         $method = 'GET')
     {
+        $this->_logApiRequest($url, $method, $params);
+
         $response = $this->_connection->oAuthRequest($url, $method, $params);
 
         file_put_contents(
@@ -273,5 +323,33 @@ class ChatterTwitterApi
         $response = json_decode($response);
 
         return $response;
+    }
+
+    /**
+     * Log API request (for debugging)
+     *
+     * @param string $url URL
+     * @param string $method HTTP method
+     * @param array $params GET/POST params
+     * @return void
+     */
+    protected function _logApiRequest($url, $method, $params)
+    {
+        if (!$this->_logApiRequests) {
+            return false;
+        }
+
+        $paramListing = array();
+
+        foreach ($params as $key => $value) {
+            $paramListing[] = $key . '=' . $value;
+        }
+
+        $message = date('Y-m-d H:i:s') . ' -- '
+            . $method . ' ' . $url . ' ' . implode('&', $paramListing);
+
+        file_put_contents(
+            $this->_configPath . "apirequests.log", $message . "\n", FILE_APPEND
+        );
     }
 }

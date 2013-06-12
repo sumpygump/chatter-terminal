@@ -13,7 +13,7 @@
  * @package Qi
  * @author Jansen Price <jansen.price@gmail.com>
  * @license http://www.opensource.org/licenses/mit-license.php MIT
- * @version 1.1
+ * @version 1.2
  */
 class Qi_Datelib
 {
@@ -86,12 +86,21 @@ class Qi_Datelib
      * @param mixed $date The date to convert
      * @param bool $longForm Whether to use the long form
      * @param string $post Append with text
+     * @param mixed $start Starting date time for comparison
      * @return string The resulting human relative date string
      */
     public static function humanRelativeDate($date, $longForm = true,
-        $post = ' ago')
+        $post = ' ago', $start = null)
     {
-        $now = time();
+        if (null == $start) {
+            $now = time();
+        } else {
+            if (!is_numeric($start)) {
+                $start = strtotime($start);
+            }
+            $now = $start;
+        }
+        
         if (!is_numeric($date)) {
             $date = strtotime($date);
         }
@@ -99,7 +108,7 @@ class Qi_Datelib
         $unitIndex = 0;
 
         $seconds = self::datediff("s", $date, $now, true);
-        
+
         $keys = array_keys(self::$units);
         $key  = current($keys);
 

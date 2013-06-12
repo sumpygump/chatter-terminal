@@ -6,7 +6,7 @@
  * @package Chatter
  * @author Jansen Price <jansen.price@gmail.com>
  * @license http://www.opensource.org/licenses/mit-license.php MIT
- * @version 2.3.7 (2011-10-05)
+ * @version 2.4.0 (2012-08-18)
  */
 
 date_default_timezone_set('America/Chicago');
@@ -40,7 +40,7 @@ $chatter = new Chatter($argv);
  * @package Chatter
  * @author Jansen Price <jansen.price@gmail.com>
  * @license http://www.opensource.org/licenses/mit-license.php MIT
- * @version 2.3.7
+ * @version 2.4.0
  */
 class Chatter
 {
@@ -49,7 +49,7 @@ class Chatter
      * 
      * @var string
      */
-    protected $_version = '2.3.7';
+    protected $_version = '2.4.0';
 
     /**
      * The terminal object
@@ -158,12 +158,14 @@ class Chatter
                 'arg:action' => 'home',
                 'arg:param1' => '',
                 'a'          => 'all',
-                'h'          => 'help',
-                't'          => 'time',
-                'i'          => 'interactive',
-                'c'          => 'continuous',
-                'f'          => 'figlet',
                 'b'          => 'bigletters',
+                'c'          => 'continuous',
+                'e'          => 'espeak', //experimental
+                'f'          => 'figlet',
+                'h'          => 'help',
+                'l'          => 'logapi',
+                'i'          => 'interactive',
+                't'          => 'time',
                 'include4sq' => false,
             )
         );
@@ -194,9 +196,13 @@ class Chatter
             $this->_options['all'] = false;
         }
 
+        $apiOptions = array(
+            'log' => $this->_args->logapi,
+        );
+
         // Set up twitter api object
         $this->_twitterApi = new ChatterTwitterApi(
-            $this->getConnection(), $this->_configPath
+            $this->getConnection(), $this->_configPath, $apiOptions
         );
 
         if ($this->_args->bigletters) {
@@ -235,7 +241,7 @@ class Chatter
         switch ($this->_args->action) {
         case 'pb':
         case 'public':
-            $this->showPublicTimeline($additional_params);
+            $this->showPublicTimeline();
             break;
         case 's':
         case 'search':
@@ -332,8 +338,9 @@ class Chatter
             $this->displayTweets($this->_savedTweets);
             break;
         case 'showfriends':
-            $friends = $this->_twitterApi
-                ->rawApiCommand('statuses/friends.json');
+            $friendIds = $this->_twitterApi->getFriendIds();
+            $firstFriendIds = array_slice($friendIds, 0, 100);
+            $friends = $this->_twitterApi->lookupUsers($firstFriendIds);
             $this->showFriends($friends);
             break;
         case 'raw':
@@ -641,9 +648,15 @@ class Chatter
      * @param array $options Additional options
      * @return void
      */
-    public function showPublicTimeline($options=array())
+    public function showPublicTimeline()
     {
-        $tweets = $this->_twitterApi->getPublicTimeline($options);
+        // This doesn't work until a solution for handling the Twitter stream 
+        // API is discovered.
+        // Potential: http://stackoverflow.com/questions/1342583/php-manipulate-a-string-that-that-is-30-mil-chars-long/1342760#1342760
+        $this->_halt('Public timeline deprecated');
+        return false;
+
+        $tweets = $this->_twitterApi->getSampleStatuses();
         $this->displayTweets($tweets);
     }
 
@@ -713,7 +726,7 @@ class Chatter
         }
 
         if (isset($tweet->user->profile_image_url)) {
-            $this->_display_image($tweet->user->profile_image_url);
+            $this->_display_image($this->getProfileImage($tweet->user));
             echo "\n";
         }
 
@@ -756,7 +769,7 @@ class Chatter
         }
 
         echo "\n";
-        $this->_display_image($data->profile_image_url);
+        $this->_display_image($this->getProfileImage($data));
 
         $this->_terminal->setaf(2);
         echo "\nName: " . $name . "\n";
@@ -937,6 +950,15 @@ class Chatter
             return;
         } else {
             $this->_noData = false;
+        }
+
+        if (isset($tweets->errors)) {
+            $errorMessage = "Error\n";
+            foreach ($tweets->errors as $error) {
+                $errorMessage .= $error->message . "\n";
+            }
+
+            $this->_halt($errorMessage);
         }
 
         foreach ($tweets as $id => $tweet) {
@@ -1189,11 +1211,12 @@ class Chatter
         $body    = $tweet->text;
         $summary = $tweet->user->screen_name;
 
-        $time = Qi_Datelib::humanRelativeDate(
-            strtotime(trim($tweet->created_at)), false, ''
-        );
+        //$time = Qi_Datelib::humanRelativeDate(
+        //    strtotime(trim($tweet->created_at)), false, ''
+        //);
+        $time = date('H:ia', strtotime(trim($tweet->created_at)));
 
-        $body = $time . "\n" . $body;
+        $body = $time . ",\n" . $body;
 
         $imageFile = $this->getProfileImage($tweet->user);
 
@@ -1205,6 +1228,18 @@ class Chatter
         echo $cmd . "\n";
 
         passthru($cmd);
+
+        if ($this->_args->espeak == true) {
+            $body = self::_replaceEmoticons($body);
+            $body = self::_replaceShortenedUrls($body);
+            $cmd = 'espeak --punct=\'!/()\' "Tweet from ' . $summary . ': ' . self::_escapeArg($body, "\"", false) . '"';
+
+            // Redirect errors to not display
+            $cmd .= ' > /dev/null 2>&1';
+
+            echo $cmd . "\n";
+            passthru($cmd);
+        }
     }
 
     /**
@@ -1213,14 +1248,46 @@ class Chatter
      * @param string $text Text to clean up
      * @return string
      */
-    protected static function _escapeArg($text)
+    protected static function _escapeArg($text, $quote='"', $escapeBackslash=true)
     {
         if (substr($text, 0, 1) == '-') {
             $text = "\\" . $text;
         }
 
-        $text = str_replace("!", "\\!", $text);
-        $text = str_replace("\"", "\\\"", $text);
+        if ($escapeBackslash) {
+            $text = str_replace("!", '\!', $text);
+        }
+        $text = str_replace($quote, "\\" . $quote, $text);
+
+        return $text;
+    }
+
+    /**
+     * Replace emoticons with words
+     *
+     * @param string $text Text input containing emoticons
+     * @return string
+     */
+    protected static function _replaceEmoticons($text)
+    {
+        $text = str_replace(':)', ', smiley face,', $text);
+        $text = str_replace(':(', ', frowney face,', $text);
+        $text = str_replace(':D', ', happy face,', $text);
+
+        return $text;
+    }
+
+    /**
+     * Replace URL references (t.co) with words
+     *
+     * When espeak reads the URLs verbatim, it's annoying
+     *
+     * @param string $text Text input containing href
+     * @return string
+     */
+    protected static function _replaceShortenedUrls($text)
+    {
+        $text = preg_replace('#http://t.co/([A-Za-z0-9]+)#', ',Hyperlink to T dot co', $text);
 
         return $text;
     }
@@ -1235,8 +1302,14 @@ class Chatter
      */
     public function getProfileImage($user)
     {
-        $url      = $user->profile_image_url;
-        $filename = $user->screen_name . "-" . md5($url);
+        $url       = $user->profile_image_url;
+        $extension = pathinfo($url, PATHINFO_EXTENSION);
+
+        if (!$url) {
+            return '';
+        }
+
+        $filename = $user->screen_name . "-" . md5($url) . '.' . $extension;
 
         $path = $this->_configPath . "profile-img-cache" . DIRECTORY_SEPARATOR;
         if (!file_exists($path)) {
@@ -1287,23 +1360,32 @@ class Chatter
         echo "Flags:\n"
             . "  -a --all         : Only for 'home' command. Instead of showing tweets since\n"
             . "                     last check, show all tweets from friends timeline.\n"
+            . "  -b --bigletters  : Use big letters made up of unicode blocks.\n"
+            . "  -c --continuous  : Continuously show tweets as they come in (checks every 1 minute).\n"
+            . "  -e --espeak      : (experimental) use espeak to speak the tweets. Only works with notify command.\n"
+            . "  -f --figlet      : Use figlet to display tweets.\n"
             . "  -i --interactive : Enter interactive mode. Commands can be entered from a prompt.\n"
             . "  -t --time        : Show actual date and time instead of human relative time.\n"
             . "     --include4sq  : Don't block 4sq.com tweets from timeline.\n";
-        echo "Commands:\n"
-            . "  detail <id>            : Show detail of tweet indicated in listing by id <id>.\n"
+        echo "\nCommands:\n"
             . "  help                   : This help.\n"
             . "  home                   : Show your home timeline <since last check>.\n"
             . "  mentions               : Show tweets mentioning you.\n"
-            . "  public                 : Show public timeline.\n"
-            . "  repeat                 : Show the most recent tweets that were displayed.\n"
-            . "  reply <id>             : Reply to tweet indicated in the listing by id <id>.\n"
+            . "  notify                 : Notify of any new tweets using libnotify (ignores --all parameter).\n"
+            . "  public                 : Show public timeline (DEPRECATED - August 2012).\n"
             . "  search <term>          : Search for term in tweets.\n"
             . "  trends                 : Show list of top 30 trends on Twitter.\n"
             . "  update [status]        : Update your status to [status]. Without argument presents a prompt with character meter.\n"
             . "  userinfo <screen_name> : Show info about user <screen_name>.\n"
             . "  user [screen_name]     : Show tweets for user [screen_name]. Default is you.\n"
             ;
+
+        echo "\nInteractive only commands:\n"
+            . "  The following list of commands are available when in interactive mode.\n"
+            . "  detail <id>     : Show detail of tweet indicated in listing by id <id>.\n"
+            . "  repeat          : Show the last list of tweets displayed.\n"
+            . "  reply <id>      : Reply to tweet indicated in the listing by id <id>.\n"
+            . "  exit | quit | q : Exit program.\n";
 
         echo "\nWhen in interactive mode, type 'exit' or 'quit' to exit. Pressing enter at the prompt will\n"
             . "  skip to the next page of results if applicable.\n\n";
@@ -1632,7 +1714,7 @@ class Chatter
     }
 
     /**
-     * Display image (using jp2a)
+     * Display image (using p2a)
      * 
      * @param string $filename Path to file
      * @return void
@@ -1654,7 +1736,7 @@ class Chatter
         switch (strtolower($extension)) {
         case 'jpg':
         case 'jpeg':
-            $cmd = "jp2a -b$cmdColors --size=48x24 \"" . $filename . "\"";
+            $cmd = "jp2a -b$cmdColors --size=48x24 \"" . $filename . "\" 2> /dev/null";
             break;
         case 'png':
             $cmd = "convert \"$filename\" jpg:- "

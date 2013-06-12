@@ -58,7 +58,7 @@ class Qi_Console_ArgVTest extends BaseTestCase
     /**
      * Arguments are required
      * 
-     * @expectedException Exception
+     * @expectedException PHPUnit_Framework_Error_Warning
      * @return void
      */
     public function testConstructorNoArguments()
@@ -238,7 +238,7 @@ class Qi_Console_ArgVTest extends BaseTestCase
     /**
      * Test parsing a short parameter missing
      * 
-     * @expectedException Exception
+     * @expectedException Qi_Console_ArgVException
      * @return void
      */
     public function testParseShortParameterMissing()
@@ -431,7 +431,7 @@ class Qi_Console_ArgVTest extends BaseTestCase
     /**
      * If a value is required
      * 
-     * @expectedException Exception
+     * @expectedException Qi_Console_ArgVException
      * @return void
      */
     public function testParseLongParameterMissingValue()
@@ -746,7 +746,7 @@ class Qi_Console_ArgVTest extends BaseTestCase
     /**
      * Missing value for argument --init
      *
-     * @expectedException Exception
+     * @expectedException Qi_Console_ArgVException
      * @return void
      */
     public function testParseWithMultitpleArgumentsRequiredMissing()
