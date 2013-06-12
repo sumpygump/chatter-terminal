@@ -952,6 +952,15 @@ class Chatter
             $this->_noData = false;
         }
 
+        if (isset($tweets->errors)) {
+            $errorMessage = "Error\n";
+            foreach ($tweets->errors as $error) {
+                $errorMessage .= $error->message . "\n";
+            }
+
+            $this->_halt($errorMessage);
+        }
+
         foreach ($tweets as $id => $tweet) {
             if (!$this->_args->include4sq
                 && strpos($tweet->text, '4sq.com')

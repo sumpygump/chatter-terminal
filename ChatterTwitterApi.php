@@ -18,9 +18,9 @@ class ChatterTwitterApi
     /**#@+
      * @var string Twitter API Base url
      */
-    const TWITTER_API_URL        = 'https://api.twitter.com/1/';
+    const TWITTER_API_URL        = 'https://api.twitter.com/1.1/';
     const TWITTER_SEARCH_API_URL = 'http://search.twitter.com/';
-    const TWITTER_STREAM_API_URL = 'https://stream.twitter.com/1/';
+    const TWITTER_STREAM_API_URL = 'https://stream.twitter.com/1.1/';
     /**#@-*/
 
     /**
