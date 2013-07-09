@@ -19,7 +19,6 @@ class ChatterTwitterApi
      * @var string Twitter API Base url
      */
     const TWITTER_API_URL        = 'https://api.twitter.com/1.1/';
-    const TWITTER_SEARCH_API_URL = 'http://search.twitter.com/';
     const TWITTER_STREAM_API_URL = 'https://stream.twitter.com/1.1/';
     /**#@-*/
 
@@ -243,22 +242,14 @@ class ChatterTwitterApi
      */
     public function searchTweets($search_term = '', $options = array())
     {
-        $url = self::TWITTER_SEARCH_API_URL . 'search.json';
+        $url = self::TWITTER_API_URL . 'search/tweets.json';
 
         $options['q'] = urlencode($search_term);
 
-        $tweets  = array();
+        $search = $this->getHttp($url, true, $options);
 
-        $search = $this->getHttp($url, false, $options);
-        if (count($search->results)) {
-            $results = array_reverse($search->results);
-            foreach ($results as $result) {
-                $result->user = new StdClass();
-
-                $result->user->screen_name = $result->from_user;
-
-                $tweets[] = $result;
-            }
+        if (is_array($search->statuses)) {
+            $tweets = array_reverse($search->statuses);
         }
 
         return $tweets;
