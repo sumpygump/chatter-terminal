@@ -571,7 +571,7 @@ class Chatter
         // User would hit ctrl+c to exit
         while (true) {
             $this->execute();
-            sleep(60);
+            sleep(120);
         }
     }
 
