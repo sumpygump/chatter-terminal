@@ -11,6 +11,7 @@
 
 date_default_timezone_set('America/Chicago');
 
+/*
 // Include path
 set_include_path(
     implode(
@@ -21,14 +22,14 @@ set_include_path(
         )
     )
 );
+ */
+
+require_once 'vendor/autoload.php';
 
 /**
  * Console lib files
  */
-require_once 'Qi/Console/Std.php';
-require_once 'Qi/Console/Terminal.php';
-require_once 'Qi/Console/ArgV.php';
-require_once 'Qi/Datelib.php';
+require_once 'lib/Qi/Datelib.php';
 require_once 'ChatterTwitterApi.php';
 require_once 'lib/twitteroauth/twitteroauth.php';
 
