@@ -1,21 +1,23 @@
 <?php
 /**
- * Qi Datelib class file
+ * ChatterTerminal Datelib class file
  *
- * @package Qi
+ * @package ChatterTerminal
  */
 
+namespace ChatterTerminal;
+
 /**
- * Qi_Datelib
+ * ChatterTerminal Datelib
  *
  * Provides library functions for dealing with dates
  *
- * @package Qi
+ * @package ChatterTerminal
  * @author Jansen Price <jansen.price@gmail.com>
  * @license http://www.opensource.org/licenses/mit-license.php MIT
  * @version 1.2
  */
-class Qi_Datelib
+class Datelib
 {
     /**
      * Store units for human relative dates
@@ -360,3 +362,4 @@ class Qi_Datelib
         return date($date_format2, $dummy_ts);
     }
 }
+

@@ -1,19 +1,21 @@
 <?php
 /**
- * Chatter Twitter Api class file 
+ * ChatterTerminal Twitter Api class file 
  *
- * @package Chatter
+ * @package ChatterTerminal
  */
 
+namespace ChatterTerminal;
+
 /**
- * ChatterTwitterApi class
+ * ChatterTerminal TwitterApi class
  *
- * @package Chatter
+ * @package ChatterTerminal
  * @author Jansen Price <jansen.price@gmail.com>
  * @license http://www.opensource.org/licenses/mit-license.php MIT
  * @version 2.3.3
  */
-class ChatterTwitterApi
+class TwitterApi
 {
     /**#@+
      * @var string Twitter API Base url
@@ -344,3 +346,4 @@ class ChatterTwitterApi
         );
     }
 }
+
