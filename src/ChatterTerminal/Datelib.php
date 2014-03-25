@@ -70,15 +70,15 @@ class Datelib
     /**
      * Add a number of days to a date
      *
-     * @param mixed $v Number of days to add
-     * @param mixed $d Date to start adding from
-     * @param string $f Format
+     * @param mixed $days Number of days to add
+     * @param mixed $date Date to start adding from
+     * @param string $format Format
      * @return string
      */
-    public static function dateadd($v, $d=null, $f="m/d/Y")
+    public static function dateadd($days, $date = null, $format = "m/d/Y")
     {
-        $d = ($d ? $d : date("Y-m-d"));
-        return date($f, strtotime($v." days", strtotime($d)));
+        $date = ($date ? $date : date("Y-m-d"));
+        return date($format, strtotime($days . " days", strtotime($date)));
     }
 
     /**

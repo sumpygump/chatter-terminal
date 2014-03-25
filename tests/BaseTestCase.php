@@ -5,10 +5,7 @@
  * @package Chatter
  */
 
-/**
- * @see PHPUnit/Framework/TestCase.php
- */
-require_once 'PHPUnit/Framework/TestCase.php';
+namespace ChatterTerminal\Tests;
 
 /**
  * Base Test Case
@@ -19,7 +16,7 @@ require_once 'PHPUnit/Framework/TestCase.php';
  * @author Jansen Price <jansen.price@gmail.com>
  * @version $Id$
  */
-class BaseTestCase extends PHPUnit_Framework_TestCase
+class BaseTestCase extends \PHPUnit_Framework_TestCase
 {
     /**
      * Storage of object being tested
