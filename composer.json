@@ -1,5 +1,6 @@
 {
     "require": {
-        "sumpygump/qi-console": "dev-master"
+        "sumpygump/qi-console": "dev-master",
+        "ruudk/twitter-oauth": "*"
     }
 }

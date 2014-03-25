@@ -212,7 +212,7 @@ class TwitterApi
      */
     public function getMentions($options = array())
     {
-        $url = self::TWITTER_API_URL . 'statuses/mentions.json';
+        $url = self::TWITTER_API_URL . 'statuses/mentions_timeline.json';
 
         $tweets = $this->getHttp($url, true, $options);
         $tweets = array_reverse($tweets);
@@ -264,7 +264,7 @@ class TwitterApi
      */
     public function getTrends()
     {
-        $url = self::TWITTER_API_URL . 'trends/weekly.json';
+        $url = self::TWITTER_API_URL . 'trends/place.json?id=1';
 
         $trends = $this->getHttp($url);
         return $trends;

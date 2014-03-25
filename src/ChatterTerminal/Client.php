@@ -11,7 +11,6 @@ use Qi_Console_ArgV;
 use Qi_Console_Std;
 use Qi_Console_Terminal;
 use Qi_Console_TermLetters;
-use TwitterOAuth;
 
 /**
  * Chatter: Twitter shell client class
@@ -19,7 +18,7 @@ use TwitterOAuth;
  * @package Chatter
  * @author Jansen Price <jansen.price@gmail.com>
  * @license http://www.opensource.org/licenses/mit-license.php MIT
- * @version 2.4.0
+ * @version 2.5
  */
 class Client
 {
@@ -28,7 +27,7 @@ class Client
      * 
      * @var string
      */
-    protected $_version = '2.4.0';
+    protected $_version = '2.5';
 
     /**
      * The terminal object
@@ -185,7 +184,6 @@ class Client
         );
 
         if ($this->_args->bigletters) {
-            require_once 'Qi/Console/TermLetters.php';
             $options = array(
                 'terminal' => $this->_terminal,
             );
@@ -827,19 +825,16 @@ class Client
         $trendsData = $this->_twitterApi->getTrends();
         $today = date('Y-m-d');
 
-        foreach ($trendsData->trends as $day => $trends) {
-            if ($day != $today) {
-                continue;
-            }
+        $trendsData = $trendsData[0];
+        
+        $this->_terminal->setaf(4);
+        echo "Trends for: " . $trendsData->as_of . "\n";
 
-            $this->_terminal->setaf(4);
-            echo "Trends for: " . $day . "\n";
+        $this->_terminal->setaf(3);
 
-            $this->_terminal->setaf(3);
-            $i = 0;
-            foreach ($trends as $trend) {
-                echo ++$i . ". " . $trend->name . "\n";
-            }
+        $i = 0;
+        foreach ($trendsData->trends as $trend) {
+            echo ++$i . ". " . $trend->name . "\n";
         }
 
         $this->_terminal->op();
@@ -1388,7 +1383,7 @@ class Client
      */
     public function getConnection()
     {
-        $connection = new TwitterOAuth(
+        $connection = new \TwitterOAuth\Api(
             $this->_consumerKey, $this->_consumerSecret,
             $this->_accessToken['oauth_token'],
             $this->_accessToken['oauth_token_secret']
@@ -1417,7 +1412,7 @@ class Client
         }
         
         // if no file, send request for oAuth
-        $connection = new TwitterOAuth(
+        $connection = new \TwitterOAuth\Api(
             $this->_consumerKey, $this->_consumerSecret
         );
 
@@ -1441,7 +1436,7 @@ class Client
         echo "Enter PIN:";
         $pin = Qi_Console_Std::in();
 
-        $connection = new TwitterOAuth(
+        $connection = new \TwitterOAuth\Api(
             $this->_consumerKey, $this->_consumerSecret,
             $requestToken['oauth_token'], $requestToken['oauth_token_secret']
         );
