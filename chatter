@@ -11,7 +11,13 @@
 
 date_default_timezone_set('America/Chicago');
 
-$loader = require_once 'vendor/autoload.php';
-$loader->add('', 'src');
+$root = realpath(dirname(__FILE__));
 
-$chatter = new \ChatterTerminal\Client($argv);
+if (!file_exists($root . DIRECTORY_SEPARATOR . 'vendor/autoload.php')) {
+    die("You must run `composer install` before proceeding\n");
+}
+
+$loader = require_once $root . DIRECTORY_SEPARATOR . 'vendor/autoload.php';
+$loader->add('', $root . DIRECTORY_SEPARATOR . 'src');
+
+$chatter = new ChatterTerminal\Client($argv);
