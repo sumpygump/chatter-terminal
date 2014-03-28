@@ -19,6 +19,10 @@ namespace ChatterTerminal;
  */
 class Datelib
 {
+    const UNIT_INDEX_SHORT = 0;
+    const UNIT_INDEX_LONG = 1;
+    const UNIT_INDEX_LONG_PLURAL = 2;
+
     /**
      * Store units for human relative dates
      *
@@ -107,9 +111,23 @@ class Datelib
             $date = strtotime($date);
         }
 
-        $unitIndex = 0;
+        $unitIndex = self::UNIT_INDEX_SHORT;
 
-        $seconds = self::datediff("s", $date, $now, true);
+        $seconds = self::datediff('s', $date, $now, true);
+
+        // Support for future
+        $prefix = '';
+        if ($seconds < 0) {
+            $seconds = abs($seconds);
+            if ($post == ' ago') {
+                // Only change the post if it isn't modified from the default
+                $post = ' from now';
+            }
+            if (!$longForm) {
+                // Add a prefix for short form
+                $prefix = '+';
+            }
+        }
 
         $keys = array_keys(self::$units);
         $key  = current($keys);
@@ -131,51 +149,46 @@ class Datelib
         $count = round($seconds / $key);
 
         if ($longForm) {
-            $unitIndex = 1;
+            $unitIndex = self::UNIT_INDEX_LONG;
 
             if ($count != 1) {
-                $unitIndex = 2;
+                $unitIndex = self::UNIT_INDEX_LONG_PLURAL;
             }
         }
 
-        $separator = ' ';
-        if ($post == '') {
-            $separator = '';
-        }
+        $separator = ($post == '') ? '' : ' ';
 
-        // Return "<5>< ><hours>< ago>"
-        return $count . $separator . self::$units[$key][$unitIndex] . $post;
+        // Return "<prefix><5>< ><hours>< ago>"
+        return $prefix . $count . $separator . self::$units[$key][$unitIndex] . $post;
     }
 
     /**
      * Calculate the difference between two dates
      *
+     * $interval can be:
+     *  yyyy - Number of full years
+     *  q - Number of full quarters
+     *  m - Number of full months
+     *  y - Difference between day numbers
+     *      (eg 1st Jan 2004 is "1", the first day. 2nd Feb 2003 is "33".
+     *      The datediff is "-32".)
+     *  d - Number of full days
+     *  w - Number of full weekdays
+     *  ww - Number of full weeks
+     *  h - Number of full hours
+     *  n - Number of full minutes
+     *  s - Number of full seconds (default)
+     *
      * @param mixed $interval A string representing the interval
      * @param mixed $datefrom The start date (from date)
      * @param mixed $dateto The end date (to date)
-     * @param bool $using_timestamps Flag to indicate dates are timestamps
+     * @param bool $usingTimestamps Flag to indicate dates are timestamps
      * @return float The difference between the dates using $interval
      */
     public static function datediff($interval, $datefrom, $dateto,
-        $using_timestamps = false)
+        $usingTimestamps = false)
     {
-        /*
-        $interval can be:
-        yyyy - Number of full years
-        q - Number of full quarters
-        m - Number of full months
-        y - Difference between day numbers
-            (eg 1st Jan 2004 is "1", the first day. 2nd Feb 2003 is "33".
-            The datediff is "-32".)
-        d - Number of full days
-        w - Number of full weekdays
-        ww - Number of full weeks
-        h - Number of full hours
-        n - Number of full minutes
-        s - Number of full seconds (default)
-        */
-
-        if (!$using_timestamps) {
+        if (!$usingTimestamps && !is_numeric($datefrom) && !is_numeric($dateto)) {
             $datefrom = strtotime($datefrom, 0);
             $dateto   = strtotime($dateto, 0);
         }
@@ -185,181 +198,116 @@ class Datelib
 
         case 'yyyy': // Number of full years
 
-            $years_difference = floor($difference / 31536000);
+            $yearsDifference = floor($difference / 31536000);
 
             $time = mktime(
                 date("H", $datefrom), date("i", $datefrom),
                 date("s", $datefrom), date("n", $datefrom),
-                date("j", $datefrom), date("Y", $datefrom) + $years_difference
+                date("j", $datefrom), date("Y", $datefrom) + $yearsDifference
             );
 
             if ($time > $dateto) {
-                $years_difference--;
+                $yearsDifference--;
             }
 
             $time = mktime(
                 date("H", $dateto), date("i", $dateto), date("s", $dateto),
                 date("n", $dateto), date("j", $dateto),
-                date("Y", $dateto) - ($years_difference + 1)
+                date("Y", $dateto) - ($yearsDifference + 1)
             );
 
             if ($time > $datefrom) {
-                $years_difference++;
+                $yearsDifference++;
             }
 
-            $datediff = $years_difference;
+            return $yearsDifference;
             break;
 
         case "q": // Number of full quarters
 
-            $quarters_difference = floor($difference / 8035200);
+            $quartersDifference = floor($difference / 8035200);
             while (
                 mktime(
                     date("H", $datefrom), date("i", $datefrom),
                     date("s", $datefrom),
-                    date("n", $datefrom) + ($quarters_difference * 3),
+                    date("n", $datefrom) + ($quartersDifference * 3),
                     date("j", $dateto), date("Y", $datefrom)
                 ) < $dateto
             ) {
-                $months_difference++;
+                $quartersDifference++;
             }
-            $quarters_difference--;
-            $datediff = $quarters_difference;
+            $quartersDifference--;
+
+            return $quartersDifference;
             break;
 
         case "m": // Number of full months
 
-            $months_difference = floor($difference / 2678400);
+            $monthsDifference = floor($difference / 2678400);
             while (
                 mktime(
                     date("H", $datefrom), date("i", $datefrom),
                     date("s", $datefrom),
-                    date("n", $datefrom) + ($months_difference),
+                    date("n", $datefrom) + ($monthsDifference),
                     date("j", $dateto), date("Y", $datefrom)
                 ) < $dateto
             ) {
-                $months_difference++;
+                $monthsDifference++;
             }
-            $months_difference--;
-            $datediff = $months_difference;
+            $monthsDifference--;
+
+            return $monthsDifference;
             break;
 
         case 'y': // Difference between day numbers
 
-            $datediff = date("z", $dateto) - date("z", $datefrom);
+            return date("z", $dateto) - date("z", $datefrom);
             break;
 
         case "d": // Number of full days
 
-            $datediff = floor($difference / 86400);
+            return floor($difference / 86400);
             break;
 
         case "w": // Number of full weekdays
 
-            $days_difference  = floor($difference / 86400);
-            $weeks_difference = floor($days_difference / 7); // Complete weeks
-            $first_day        = date("w", $datefrom);
-            $days_remainder   = floor($days_difference % 7);
+            $daysDifference  = floor($difference / 86400);
+            $weeksDifference = floor($daysDifference / 7); // Complete weeks
+            $firstDay        = date("w", $datefrom);
+            $daysRemainder   = floor($daysDifference % 7);
 
             // Do we have a Saturday or Sunday in the remainder?
-            $odd_days = $first_day + $days_remainder;
+            $oddDays = $firstDay + $daysRemainder;
 
-            if ($odd_days > 7) { // Sunday
-                $days_remainder--;
+            if ($oddDays > 7) { // Sunday
+                $daysRemainder--;
             }
-            if ($odd_days > 6) { // Saturday
-                $days_remainder--;
+            if ($oddDays > 6) { // Saturday
+                $daysRemainder--;
             }
-            $datediff = ($weeks_difference * 5) + $days_remainder;
+
+            return ($weeksDifference * 5) + $daysRemainder;
             break;
 
         case "ww": // Number of full weeks
 
-            $datediff = floor($difference / 604800);
+            return floor($difference / 604800);
             break;
 
         case "h": // Number of full hours
 
-            $datediff = floor($difference / 3600);
+            return floor($difference / 3600);
             break;
 
         case "n": // Number of full minutes
 
-            $datediff = floor($difference / 60);
+            return floor($difference / 60);
             break;
 
         default: // Number of full seconds (default)
 
-            $datediff = $difference;
+            return $difference;
             break;
         }
-
-        return $datediff;
-    }
-
-    /**
-     * Converts a date and time string from one format to another
-     *
-     * (e.g. d/m/Y => Y-m-d, d.m.Y => Y/d/m, ...)
-     * mod of http://www.php.net/manual/en/function.date.php#71397
-     *
-     * @param string $date_format1 The format to convert from
-     * @param string $date_format2 The format to convert to
-     * @param string $date_str The date to format
-     * @return string
-     */
-    public function date_convert_format($date_format1, $date_format2, $date_str)
-    {
-        $base_struc     = split('[:/.\ \-]', $date_format1);
-        $date_str_parts = split('[:/.\ \-]', $date_str);
-
-        // print_r( $base_struc ); echo "\n"; // for testing
-        // print_r( $date_str_parts ); echo "\n"; // for testing
-
-        $date_elements = array();
-
-        $p_keys = array_keys($base_struc);
-        foreach ($p_keys as $p_key) {
-            if (!empty( $date_str_parts[$p_key])) {
-                $date_elements[$base_struc[$p_key]] = $date_str_parts[$p_key];
-            } else {
-                return false;
-            }
-        }
-
-        // print_r($date_elements); // for testing
-
-        if (array_key_exists('M', $date_elements)) {
-            $Mtom = array(
-                "Jan" => "01",
-                "Feb" => "02",
-                "Mar" => "03",
-                "Apr" => "04",
-                "May" => "05",
-                "Jun" => "06",
-                "Jul" => "07",
-                "Aug" => "08",
-                "Sep" => "09",
-                "Oct" => "10",
-                "Nov" => "11",
-                "Dec" => "12",
-            );
-
-            $date_elements['m'] = $Mtom[$date_elements['M']];
-        }
-
-        // print_r($date_elements); // for testing
-
-        $dummy_ts = mktime(
-            $date_elements['H'],
-            $date_elements['i'],
-            $date_elements['s'],
-            $date_elements['m'],
-            $date_elements['d'],
-            $date_elements['Y']
-        );
-
-        return date($date_format2, $dummy_ts);
     }
 }
-
